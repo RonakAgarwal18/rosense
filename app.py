@@ -1,11 +1,6 @@
-"""
-RoSense: Code-Mixed Telecommunications Triage & SLA Routing Console.
-Copyright (c) 2026. Enterprise Support Systems Integration.
-"""
-
-from typing import Dict, Any, List, Tuple
 import json
 import re
+from typing import Any, Dict, List, Tuple
 import pandas as pd
 import plotly.express as px
 import streamlit as st
@@ -20,14 +15,12 @@ try:
 except ImportError:
     GENAI_SUPPORTED = False
 
-# Page Configuration
 st.set_page_config(
     page_title="RoSense Console | Telecom Operations",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# Enterprise Slate & Monochrome Styling (No Cartoons / No Emojis)
 st.markdown(
     """
     <style>
@@ -86,23 +79,14 @@ st.markdown(
         font-weight: 600;
         letter-spacing: 0.04em;
     }
-    .panel-box {
-        background-color: #161b22;
-        border: 1px solid #30363d;
-        border-radius: 6px;
-        padding: 16px;
-        margin-bottom: 16px;
-    }
     </style>
     """,
     unsafe_allow_html=True
 )
 
-# Header Section
 st.title("RoSense: Code-Mixed NLP Triage Console")
 st.caption("Operations Dashboard / Dialectal Text Ingestion & SLA Escalation Router")
 
-# Vocabulary & Morphology Constants
 HINGLISH_VOCAB = {
     "mera", "meri", "mere", "mujhe", "mai", "main", "hum", "tu", "tera", "aap", "aapka",
     "ka", "ki", "ke", "ko", "se", "me", "mein", "pe", "par", "hai", "hain", "ho", "tha",
@@ -116,14 +100,16 @@ REGULATORY_INDICATORS: List[Tuple[str, int, str]] = [
     (r"\b(consumer court|consumer forum|court)\b", 45, "Legal / Consumer Forum"),
     (r"\b(trai|government|nodal|ombudsman)\b", 40, "Regulatory Escalation (TRAI)"),
     (r"\b(legal notice|lawyer|police|fir|fraud)\b", 35, "Legal / Fraud Allegation"),
-    (r"\b(port|porting|switch|chhod dunga|jio|airtel)\b", 25, "Churn Risk"),
-    (r"\b(utterly disappointed|mental harassment|harass|ghatiya)\b", 20, "Severe Dissatisfaction"),
-    (r"\b(wfh|office|hospital|emergency)\b", 15, "Critical Outage Impact")
+    (r"\b(port|porting|switch|chhod dunga)\b", 30, "Explicit Churn Intent"),
+    (r"\b(airtel|jio|vi|bsnl)\b", 25, "Competitor Defection Mention"),
+    (r"\b(bc|mc|chutiya|bakwas|ghatiya|harami|loot)\b", 25, "Customer Agitation & Abusive Language"),
+    (r"\b(call cut|call lag|call drop|line disconnect|baar baar cut)\b", 25, "Critical Voice Circuit Failure"),
+    (r"\b(utterly disappointed|mental harassment|harass)\b", 20, "Severe Dissatisfaction"),
+    (r"\b(wfh|office|hospital|emergency)\b", 15, "Mission Critical Outage Impact")
 ]
 
 
 def calculate_indic_density(text: str) -> float:
-    """Calculates proportion of Indic/Hinglish morphological markers in text."""
     tokens = re.findall(r"\b[a-zA-Z]+\b", text.lower())
     if not tokens:
         return 0.0
@@ -133,7 +119,6 @@ def calculate_indic_density(text: str) -> float:
 
 @st.cache_resource
 def build_edge_classifier() -> Pipeline:
-    """Trains a subword character n-gram pipeline for local edge inference."""
     corpus = [
         ("recharge ka price badh gaya itna jyada ab kyu extra paise du", "Billing & Tariffs"),
         ("balance deduct ho gaya bina kisi reason ke refund chahiye", "Billing & Tariffs"),
@@ -146,6 +131,9 @@ def build_edge_classifier() -> Pipeline:
         ("fiber connection dead hai WFH meeting miss ho rahi hai", "Network Operations"),
         ("tower me network coverage zero hai 5G bilkul nahi chal raha", "Network Operations"),
         ("packet loss high hai ping bohot kharab aa raha hai gaming me", "Network Operations"),
+        ("call cut ho gaya apne aap call lag hi nahi raha disconnect ho raha", "Network Operations"),
+        ("call cut ho gya aisa pehle kabhi nhi hua lagte hi cut ho rha hai", "Network Operations"),
+        ("isse accha airtel me chale jau call bar bar cut ho rahi hai", "Network Operations"),
         ("mujhe e-sim me switch karna hai physical sim se kya process hai", "SIM Services"),
         ("sim block ho gaya puk code chahiye handset unlock karne", "SIM Services"),
         ("naya sim card order kiya tha delivery abhi tak nahi aayi", "SIM Services"),
@@ -167,8 +155,25 @@ def build_edge_classifier() -> Pipeline:
 classifier_model = build_edge_classifier()
 
 
+def generate_local_operational_directive(triggers: List[str], intent: str, risk: int) -> str:
+    narratives = []
+    if "Critical Voice Circuit Failure" in triggers:
+        narratives.append("Diagnose active voice gateway and check for local sector antenna degradation.")
+    if "Competitor Defection Mention" in triggers:
+        narratives.append("Subscriber explicitly evaluating competitor migration.")
+    if "Customer Agitation & Abusive Language" in triggers:
+        narratives.append("High emotional volatility detected in transcript; direct contact prioritized.")
+    if "Legal / Consumer Forum" in triggers or "Regulatory Escalation (TRAI)" in triggers:
+        narratives.append("Pre-emptive regulatory case logging mandated.")
+
+    if not narratives:
+        narratives.append(f"Standard automated diagnostics dispatched for {intent}.")
+
+    header = "Priority Dispatch: " if risk >= 65 else "Standard Handling: "
+    return header + " ".join(narratives)
+
+
 def execute_edge_inference(text: str) -> Dict[str, Any]:
-    """Runs local Subword Character N-Gram classification."""
     classes = classifier_model.named_steps['classifier'].classes_
     probabilities = classifier_model.predict_proba([text])[0]
     prob_map = {cls: round(prob * 100, 1) for cls, prob in zip(classes, probabilities)}
@@ -182,15 +187,16 @@ def execute_edge_inference(text: str) -> Dict[str, Any]:
             threat_score += weight
             detected_triggers.append(label)
 
-    if "Regulatory & Churn" in classes:
-        idx = list(classes).index("Regulatory & Churn")
-        threat_score += probabilities[idx] * 40
+    if "Critical Voice Circuit Failure" in detected_triggers:
+        primary_intent = "Network Operations"
+        prob_map["Network Operations"] = max(prob_map.get("Network Operations", 0), 84.0)
+        confidence = prob_map["Network Operations"]
 
     threat_score = min(int(threat_score), 100)
     density = calculate_indic_density(text)
 
-    if threat_score >= 65 or primary_intent == "Regulatory & Churn":
-        queue = "L3 Executive Regulatory Desk"
+    if threat_score >= 65:
+        queue = "L3 Executive Regulatory & Retention Desk"
     elif primary_intent == "Network Operations":
         queue = "NOC Automated Diagnostics"
     elif primary_intent == "Billing & Tariffs":
@@ -198,8 +204,10 @@ def execute_edge_inference(text: str) -> Dict[str, Any]:
     else:
         queue = "Tier-1 Digital Ingestion"
 
+    directive = generate_local_operational_directive(detected_triggers, primary_intent, threat_score)
+
     return {
-        "engine": "Tier-1 Edge Pipeline (Subword TF-IDF)",
+        "engine": "Tier-1 Edge Pipeline (Subword TF-IDF + Heuristics)",
         "indic_density": density,
         "intent": primary_intent,
         "confidence": confidence,
@@ -207,12 +215,11 @@ def execute_edge_inference(text: str) -> Dict[str, Any]:
         "risk_score": threat_score,
         "triggers": list(set(detected_triggers)),
         "destination_queue": queue,
-        "directive": "Automated routing executed based on edge heuristic evaluation."
+        "directive": directive
     }
 
 
 def execute_cloud_inference(text: str, api_token: str) -> Dict[str, Any]:
-    """Invokes Foundation LLM for zero-shot semantic parsing with strict JSON schema."""
     if not GENAI_SUPPORTED:
         raise RuntimeError("Missing google-genai dependency.")
 
@@ -247,11 +254,10 @@ def execute_cloud_inference(text: str, api_token: str) -> Dict[str, Any]:
         "risk_score": payload.get("risk_score", 0),
         "triggers": payload.get("identified_triggers", []),
         "destination_queue": payload.get("destination_queue", "Tier-1 Digital Ingestion"),
-        "directive": payload.get("directive", "Review customer history prior to dispatch.")
+        "directive": payload.get("directive", "Review subscriber log prior to dispatch.")
     }
 
 
-# Sidebar Controls
 st.sidebar.subheader("System Configuration")
 pipeline_mode = st.sidebar.selectbox(
     "Routing Pipeline",
@@ -271,8 +277,8 @@ gemini_key_input = st.sidebar.text_input(
 
 sla_limit = st.sidebar.slider("SLA Escalation Threshold", min_value=30, max_value=90, value=65)
 
-# Telemetry Presets
 PRESET_RECORDS = {
+    "Call Failure & Competitor Defection": "Kal mai call pe baat kar rha tha and achanak se call cut ho gya, aisa pehle kabhi nhi hua. and aaj to ab call lag hi nhi rha , lagate hi apne aap cut ho rha hai, isse accha to airtel hai bc",
     "Tariff Increase & Regulatory Complaint": "recharge ka price is baar itna badh kyu gya, pehle to 455 me ho jata tha ab kyu 555 du mai. i am utterly disappointed. i will complain to the government about this. consumer court me jaunga",
     "Fiber Outage (WFH Impact)": "Red light router pe blink kar rahi hai subah 9 baje se. Internet completely dead hai, office WFH urgent meetings miss ho gayi. Solve it immediately.",
     "eSIM Migration Request": "Mujhe naya e-SIM chahiye existing physical SIM se switch karne ke liye. Kya store aana hoga verify karne ke liye?"
@@ -313,7 +319,6 @@ if st.button("Ingest and Evaluate Telemetry", type="primary"):
     if analysis_result:
         st.markdown(f"**Execution Route:** `{analysis_result['engine']}`")
 
-        # Top-level Metric Tiles
         c1, c2, c3, c4 = st.columns(4)
         with c1:
             st.metric("Indic Language Ratio", f"{analysis_result['indic_density']}%")
@@ -330,7 +335,6 @@ if st.button("Ingest and Evaluate Telemetry", type="primary"):
         with c4:
             st.metric("Assigned Route", analysis_result['destination_queue'])
 
-        # Detailed Layout
         col_left, col_right = st.columns([1.3, 1])
 
         with col_left:
