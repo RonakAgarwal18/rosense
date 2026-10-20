@@ -1,23 +1,31 @@
-# Captain ROSense
+<div align="center">
 
-**RoSense — Code-Mixed Indic NLP & Support Triage Engine**
+# ROSense
 
-Customer support in India runs on Hinglish — complaints that mix Hindi and English in the same sentence. Normal English classifiers misread them. Captain ROSense reads a code-mixed telecom complaint, works out what it is about, scores how risky it is (churn threats, legal and regulator mentions, SLA danger), and routes it to the right support queue — most of it locally, in milliseconds, with a cloud LLM only when the case needs one.
+**Code-Mixed Indic NLP & Support Triage Engine**
 
-[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://rosense.streamlit.app)
-[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
+*Reads Hinglish complaints the way customers actually write them.*
 
-**Live demo:** https://rosense.streamlit.app
+![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?style=flat-square&logo=python&logoColor=white)
+![Streamlit](https://img.shields.io/badge/Streamlit-FF4B4B?style=flat-square&logo=streamlit&logoColor=white)
+![scikit-learn](https://img.shields.io/badge/scikit--learn-F7931E?style=flat-square&logo=scikitlearn&logoColor=white)
+![Gemini](https://img.shields.io/badge/Gemini_2.5_Flash-8E75B2?style=flat-square&logo=googlegemini&logoColor=white)
+
+### [▶ Live Demo](https://rosense.streamlit.app)
+
+</div>
 
 ---
 
 ## What it does
 
+Customer support in India runs on Hinglish — complaints that mix Hindi and English in the same sentence. Normal English classifiers misread them. ROSense reads a code-mixed telecom complaint, works out what it is about, scores how risky it is (churn threats, legal and regulator mentions, SLA danger), and routes it to the right support queue — most of it locally, in milliseconds, with a cloud LLM only when the case needs one.
+
 Paste a complaint like:
 
 > *"Kal mai call pe baat kar rha tha and achanak se call cut ho gya... isse accha to airtel hai"*
 
-and Captain ROSense returns:
+and ROSense returns:
 
 - **Code-mix density** — how much of the message is Indic vs English
 - **Intent** — one of 4 queues: Billing & Tariffs · Network Operations · SIM Services · Regulatory & Churn
@@ -57,7 +65,7 @@ Three routing modes, selectable in the sidebar:
 
 Every run shows four headline metrics (code-mix %, intent, SLA risk, assigned queue), a confidence chart across all 4 intents, the exact risk triggers found in the text, and the action note for the team. Four ready-made test complaints are built into the sidebar — including a call-drop + competitor threat, a tariff-hike regulator complaint, a WFH fiber outage, and an eSIM request.
 
-## Quickstart
+## Quick start
 
 ```bash
 git clone https://github.com/RonakAgarwal18/rosense.git
@@ -87,4 +95,8 @@ Python · Streamlit · Scikit-learn · Pandas · Plotly · Google Gemini (google
 
 ---
 
+<div align="center">
+
 Built by [Ronak Agarwal](https://github.com/RonakAgarwal18)
+
+</div>
